@@ -1,98 +1,59 @@
-# Drop — Simple File Upload App
+# Drop — File Upload App
 
-A clean file upload website with a Node.js backend and a polished HTML frontend.
-**Zero external dependencies** — runs on any machine with Node.js installed.
+A clean, simple file upload website. Upload files, share them, download them anytime.
 
----
-
-## Project structure
-
-```
-fileupload/
-├── backend/
-│   └── server.js        ← Node.js HTTP server (built-ins only)
-├── frontend/
-│   └── index.html       ← Single-file frontend (HTML + CSS + JS)
-└── README.md
-```
+🌐 **Live at:** [https://drop-fileupload.onrender.com](https://drop-fileupload.onrender.com)
 
 ---
 
-## Setup & run
+## How to use
 
-### 1. Start the backend
+1. Go to [https://drop-fileupload.onrender.com](https://drop-fileupload.onrender.com)
+2. Drag and drop files onto the page, or click to browse
+3. Click **Upload files**
+4. Download or delete your files anytime from the list below
 
-```bash
-cd backend
-node server.js
-```
-
-The server starts on **http://localhost:3000** and creates an `uploads/` folder automatically.
-
-### 2. Open the frontend
-
-Option A — served by the backend:
-Visit **http://localhost:3000** in your browser.
-
-Option B — open directly:
-Open `frontend/index.html` in your browser (works for most browsers, though CORS must be allowed).
-
----
-
-## API reference
-
-| Method | Endpoint                        | Description              |
-|--------|---------------------------------|--------------------------|
-| POST   | `/api/upload`                   | Upload one or more files |
-| GET    | `/api/files`                    | List all uploaded files  |
-| GET    | `/api/files/:id/download`       | Download a file by ID    |
-| DELETE | `/api/files/:id`                | Delete a file by ID      |
-
-### Upload example (curl)
-
-```bash
-curl -X POST http://localhost:3000/api/upload \
-  -F "file=@/path/to/your/file.pdf"
-```
-
-### Response format
-
-```json
-{
-  "success": true,
-  "files": [
-    {
-      "id": "a1b2c3d4e5f6a7b8",
-      "originalName": "report.pdf",
-      "size": 204800,
-      "sizeFormatted": "200.0 KB",
-      "mimetype": "application/pdf",
-      "uploadedAt": "2026-06-19T12:00:00.000Z"
-    }
-  ]
-}
-```
-
----
-
-## Configuration
-
-Edit the constants at the top of `backend/server.js`:
-
-| Variable        | Default | Description               |
-|-----------------|---------|---------------------------|
-| `PORT`          | `3000`  | Server port               |
-| `MAX_FILE_SIZE` | `50 MB` | Maximum upload size       |
-| `UPLOAD_DIR`    | `./uploads` | Where files are stored |
+Max file size: **50 MB**
 
 ---
 
 ## Features
 
 - Drag-and-drop or click-to-browse file selection
-- Multi-file upload with a pending queue
-- Upload progress bar (real-time XHR progress)
+- Upload multiple files at once
+- Real-time upload progress bar
 - Download and delete uploaded files
-- Live server status indicator
-- 50 MB file size limit with validation
-- No external packages required
+- Works on any device
+
+---
+
+## Tech stack
+
+- **Backend:** Node.js (no external dependencies)
+- **Frontend:** Plain HTML, CSS, JavaScript
+- **Hosting:** Render.com
+
+---
+
+## Project structure
+
+```
+├── backend/
+│   ├── server.js        ← Node.js HTTP server
+│   └── public/
+│       └── index.html   ← Frontend served by backend
+├── frontend/
+│   └── index.html       ← Source frontend file
+└── README.md
+```
+
+---
+
+## API reference
+
+| Method | Endpoint                    | Description           |
+|--------|-----------------------------|-----------------------|
+| POST   | `/api/upload`               | Upload one or more files |
+| GET    | `/api/files`                | List all uploaded files  |
+| GET    | `/api/files/:id/download`   | Download a file by ID    |
+| DELETE | `/api/files/:id`            | Delete a file by ID      |
