@@ -247,7 +247,7 @@ const server = http.createServer((req, res) => {
   if (delMatch && method === "DELETE") return handleDelete(req, res, delMatch[1]);
 
   // Serve frontend
-  const frontendDir = path.join(__dirname, "../frontend");
+  const frontendDir = path.join(__dirname, "public");
   if (pathname === "/" || pathname === "/index.html") {
     return serveStatic(req, res, path.join(frontendDir, "index.html"));
   }
