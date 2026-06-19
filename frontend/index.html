@@ -1,0 +1,643 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Drop — File Uploads</title>
+  <style>
+    /* ── Tokens ── */
+    :root {
+      --ink:     #0f0f0f;
+      --paper:   #f8f7f4;
+      --mist:    #ebe9e4;
+      --stone:   #9a9690;
+      --accent:  #2563ff;
+      --danger:  #e02424;
+      --success: #16a34a;
+      --radius:  10px;
+      --mono:    "SF Mono", "Fira Code", "Consolas", monospace;
+      --sans:    "Inter", system-ui, sans-serif;
+    }
+
+    /* ── Reset ── */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: var(--sans);
+      background: var(--paper);
+      color: var(--ink);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* ── Header ── */
+    header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 20px 32px;
+      border-bottom: 1px solid var(--mist);
+    }
+
+    .logo {
+      font-size: 18px;
+      font-weight: 700;
+      letter-spacing: -0.5px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .logo-dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      background: var(--accent);
+    }
+
+    .server-status {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 13px;
+      color: var(--stone);
+    }
+
+    .status-dot {
+      width: 7px; height: 7px;
+      border-radius: 50%;
+      background: #ccc;
+      transition: background 0.3s;
+    }
+    .status-dot.online { background: var(--success); }
+    .status-dot.offline { background: var(--danger); }
+
+    /* ── Main layout ── */
+    main {
+      flex: 1;
+      max-width: 720px;
+      margin: 0 auto;
+      padding: 48px 24px 64px;
+      width: 100%;
+    }
+
+    h1 {
+      font-size: 36px;
+      font-weight: 800;
+      letter-spacing: -1px;
+      line-height: 1.15;
+      margin-bottom: 8px;
+    }
+
+    .subtitle {
+      color: var(--stone);
+      font-size: 15px;
+      margin-bottom: 36px;
+    }
+
+    /* ── Drop zone ── */
+    .dropzone {
+      border: 2px dashed var(--mist);
+      border-radius: var(--radius);
+      padding: 52px 32px;
+      text-align: center;
+      cursor: pointer;
+      transition: border-color 0.15s, background 0.15s;
+      position: relative;
+      background: white;
+    }
+
+    .dropzone:hover,
+    .dropzone.dragover {
+      border-color: var(--accent);
+      background: #f0f4ff;
+    }
+
+    .dropzone input[type="file"] {
+      position: absolute;
+      inset: 0;
+      opacity: 0;
+      cursor: pointer;
+      width: 100%;
+      height: 100%;
+    }
+
+    .drop-icon {
+      font-size: 40px;
+      margin-bottom: 14px;
+      display: block;
+      line-height: 1;
+    }
+
+    .drop-label {
+      font-size: 15px;
+      font-weight: 600;
+      margin-bottom: 4px;
+    }
+
+    .drop-hint {
+      font-size: 13px;
+      color: var(--stone);
+    }
+
+    .drop-hint span {
+      color: var(--accent);
+      font-weight: 500;
+    }
+
+    /* ── Upload button ── */
+    .upload-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      margin-top: 20px;
+      background: var(--ink);
+      color: white;
+      border: none;
+      border-radius: var(--radius);
+      font-size: 14px;
+      font-weight: 600;
+      padding: 11px 22px;
+      cursor: pointer;
+      transition: opacity 0.15s, transform 0.1s;
+    }
+
+    .upload-btn:hover { opacity: 0.85; }
+    .upload-btn:active { transform: scale(0.98); }
+    .upload-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+
+    /* ── Queue / pending files ── */
+    #queue { margin-top: 24px; display: flex; flex-direction: column; gap: 8px; }
+
+    .queue-item {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      background: white;
+      border: 1px solid var(--mist);
+      border-radius: 8px;
+      padding: 10px 14px;
+      font-size: 13px;
+    }
+
+    .queue-item .q-name {
+      flex: 1;
+      font-weight: 500;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .queue-item .q-size { color: var(--stone); }
+
+    .remove-btn {
+      background: none;
+      border: none;
+      cursor: pointer;
+      color: var(--stone);
+      font-size: 16px;
+      line-height: 1;
+      padding: 2px;
+      transition: color 0.15s;
+    }
+    .remove-btn:hover { color: var(--danger); }
+
+    /* ── Progress bar ── */
+    #progress-wrap {
+      margin-top: 20px;
+      display: none;
+    }
+
+    .progress-track {
+      height: 4px;
+      background: var(--mist);
+      border-radius: 99px;
+      overflow: hidden;
+    }
+
+    .progress-fill {
+      height: 100%;
+      background: var(--accent);
+      border-radius: 99px;
+      width: 0%;
+      transition: width 0.2s;
+    }
+
+    .progress-label {
+      font-size: 12px;
+      color: var(--stone);
+      margin-top: 6px;
+      font-family: var(--mono);
+    }
+
+    /* ── Toast ── */
+    #toast {
+      position: fixed;
+      bottom: 28px;
+      left: 50%;
+      transform: translateX(-50%) translateY(80px);
+      background: var(--ink);
+      color: white;
+      padding: 10px 20px;
+      border-radius: 99px;
+      font-size: 13px;
+      font-weight: 500;
+      transition: transform 0.25s ease;
+      pointer-events: none;
+      white-space: nowrap;
+    }
+
+    #toast.show { transform: translateX(-50%) translateY(0); }
+    #toast.error { background: var(--danger); }
+    #toast.success { background: var(--success); }
+
+    /* ── Divider ── */
+    .section-label {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin: 40px 0 16px;
+      font-size: 12px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--stone);
+    }
+
+    .section-label::after {
+      content: "";
+      flex: 1;
+      height: 1px;
+      background: var(--mist);
+    }
+
+    /* ── File list ── */
+    #file-list { display: flex; flex-direction: column; gap: 8px; }
+
+    .file-card {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      background: white;
+      border: 1px solid var(--mist);
+      border-radius: var(--radius);
+      padding: 12px 16px;
+      transition: border-color 0.15s;
+    }
+
+    .file-card:hover { border-color: #c8c5be; }
+
+    .file-type {
+      width: 40px;
+      height: 40px;
+      border-radius: 8px;
+      background: var(--mist);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 18px;
+      flex-shrink: 0;
+    }
+
+    .file-info { flex: 1; min-width: 0; }
+
+    .file-name {
+      font-weight: 600;
+      font-size: 14px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .file-meta {
+      font-size: 12px;
+      color: var(--stone);
+      font-family: var(--mono);
+      margin-top: 2px;
+    }
+
+    .file-actions {
+      display: flex;
+      gap: 6px;
+      flex-shrink: 0;
+    }
+
+    .action-btn {
+      background: none;
+      border: 1px solid var(--mist);
+      border-radius: 6px;
+      padding: 6px 12px;
+      font-size: 12px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.1s, border-color 0.1s;
+    }
+
+    .action-btn.dl {
+      color: var(--accent);
+      border-color: #bfcfff;
+    }
+    .action-btn.dl:hover { background: #eef2ff; }
+
+    .action-btn.del {
+      color: var(--danger);
+      border-color: #fca5a5;
+    }
+    .action-btn.del:hover { background: #fef2f2; }
+
+    .empty-state {
+      text-align: center;
+      color: var(--stone);
+      font-size: 14px;
+      padding: 32px;
+      border: 1px dashed var(--mist);
+      border-radius: var(--radius);
+    }
+
+    /* ── Responsive ── */
+    @media (max-width: 480px) {
+      header { padding: 16px 20px; }
+      main { padding: 32px 16px 48px; }
+      h1 { font-size: 28px; }
+      .dropzone { padding: 36px 20px; }
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <div class="logo">
+    <div class="logo-dot"></div>
+    Drop
+  </div>
+  <div class="server-status">
+    <div class="status-dot" id="status-dot"></div>
+    <span id="status-label">Connecting…</span>
+  </div>
+</header>
+
+<main>
+  <h1>Upload anything.<br>Retrieve it anytime.</h1>
+  <p class="subtitle">Drag files in or click to browse. Max 50 MB per file.</p>
+
+  <!-- Drop zone -->
+  <div class="dropzone" id="dropzone">
+    <input type="file" id="file-input" multiple />
+    <span class="drop-icon">📂</span>
+    <p class="drop-label">Drop files here</p>
+    <p class="drop-hint">or <span>click to browse</span> from your device</p>
+  </div>
+
+  <!-- Pending queue -->
+  <div id="queue"></div>
+
+  <!-- Progress -->
+  <div id="progress-wrap">
+    <div class="progress-track">
+      <div class="progress-fill" id="progress-fill"></div>
+    </div>
+    <div class="progress-label" id="progress-label">Uploading…</div>
+  </div>
+
+  <!-- Upload button -->
+  <button class="upload-btn" id="upload-btn" disabled>
+    ↑ Upload files
+  </button>
+
+  <!-- Uploaded files -->
+  <div class="section-label">Uploaded files</div>
+  <div id="file-list"><div class="empty-state">No files uploaded yet.</div></div>
+</main>
+
+<div id="toast"></div>
+
+<script>
+  const API = "http://localhost:3000/api";
+
+  // ── State ──────────────────────────────────────────────────────────────
+  let pendingFiles = []; // File objects to be uploaded
+
+  // ── DOM refs ───────────────────────────────────────────────────────────
+  const dropzone    = document.getElementById("dropzone");
+  const fileInput   = document.getElementById("file-input");
+  const queue       = document.getElementById("queue");
+  const uploadBtn   = document.getElementById("upload-btn");
+  const progressWrap= document.getElementById("progress-wrap");
+  const progressFill= document.getElementById("progress-fill");
+  const progressLabel=document.getElementById("progress-label");
+  const fileList    = document.getElementById("file-list");
+  const toast       = document.getElementById("toast");
+  const statusDot   = document.getElementById("status-dot");
+  const statusLabel = document.getElementById("status-label");
+
+  // ── Server health check ───────────────────────────────────────────────
+  async function checkServer() {
+    try {
+      await fetch(`${API}/files`);
+      statusDot.className = "status-dot online";
+      statusLabel.textContent = "Server online";
+    } catch {
+      statusDot.className = "status-dot offline";
+      statusLabel.textContent = "Server offline";
+    }
+  }
+
+  // ── Toast ──────────────────────────────────────────────────────────────
+  let toastTimer;
+  function showToast(msg, type = "default") {
+    toast.textContent = msg;
+    toast.className = `show ${type}`;
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => { toast.className = ""; }, 3000);
+  }
+
+  // ── File type emoji ────────────────────────────────────────────────────
+  function typeEmoji(name) {
+    const ext = name.split(".").pop().toLowerCase();
+    const map = {
+      pdf: "📄", png: "🖼️", jpg: "🖼️", jpeg: "🖼️", gif: "🖼️", webp: "🖼️",
+      mp4: "🎬", mov: "🎬", avi: "🎬", mp3: "🎵", wav: "🎵",
+      zip: "🗜️", rar: "🗜️", "7z": "🗜️",
+      txt: "📝", md: "📝", json: "🔧", csv: "📊",
+      xls: "📊", xlsx: "📊", doc: "📄", docx: "📄",
+      ppt: "📊", pptx: "📊",
+    };
+    return map[ext] || "📁";
+  }
+
+  function formatSize(bytes) {
+    if (bytes < 1024) return `${bytes} B`;
+    if (bytes < 1024 ** 2) return `${(bytes / 1024).toFixed(1)} KB`;
+    return `${(bytes / 1024 ** 2).toFixed(1)} MB`;
+  }
+
+  function relativeTime(iso) {
+    const diff = Date.now() - new Date(iso).getTime();
+    const s = Math.floor(diff / 1000);
+    if (s < 60) return "just now";
+    if (s < 3600) return `${Math.floor(s / 60)}m ago`;
+    if (s < 86400) return `${Math.floor(s / 3600)}h ago`;
+    return `${Math.floor(s / 86400)}d ago`;
+  }
+
+  // ── Queue UI ───────────────────────────────────────────────────────────
+  function renderQueue() {
+    queue.innerHTML = "";
+    pendingFiles.forEach((f, i) => {
+      const item = document.createElement("div");
+      item.className = "queue-item";
+      item.innerHTML = `
+        <span>${typeEmoji(f.name)}</span>
+        <span class="q-name">${f.name}</span>
+        <span class="q-size">${formatSize(f.size)}</span>
+        <button class="remove-btn" data-i="${i}" title="Remove">✕</button>
+      `;
+      queue.appendChild(item);
+    });
+    uploadBtn.disabled = pendingFiles.length === 0;
+  }
+
+  queue.addEventListener("click", (e) => {
+    if (e.target.classList.contains("remove-btn")) {
+      pendingFiles.splice(+e.target.dataset.i, 1);
+      renderQueue();
+    }
+  });
+
+  // ── File selection ─────────────────────────────────────────────────────
+  function addFiles(files) {
+    const MAX = 50 * 1024 * 1024;
+    for (const f of files) {
+      if (f.size > MAX) { showToast(`"${f.name}" exceeds 50 MB`, "error"); continue; }
+      if (!pendingFiles.find(p => p.name === f.name && p.size === f.size)) {
+        pendingFiles.push(f);
+      }
+    }
+    renderQueue();
+  }
+
+  fileInput.addEventListener("change", () => addFiles(fileInput.files));
+
+  dropzone.addEventListener("dragover",  (e) => { e.preventDefault(); dropzone.classList.add("dragover"); });
+  dropzone.addEventListener("dragleave", ()  => dropzone.classList.remove("dragover"));
+  dropzone.addEventListener("drop", (e) => {
+    e.preventDefault();
+    dropzone.classList.remove("dragover");
+    addFiles(e.dataTransfer.files);
+  });
+
+  // ── Upload ─────────────────────────────────────────────────────────────
+  uploadBtn.addEventListener("click", uploadFiles);
+
+  async function uploadFiles() {
+    if (!pendingFiles.length) return;
+
+    uploadBtn.disabled = true;
+    progressWrap.style.display = "block";
+    progressFill.style.width = "0%";
+    progressLabel.textContent = "Preparing…";
+
+    const fd = new FormData();
+    pendingFiles.forEach(f => fd.append("file", f));
+
+    try {
+      await new Promise((resolve, reject) => {
+        const xhr = new XMLHttpRequest();
+        xhr.open("POST", `${API}/upload`);
+
+        xhr.upload.addEventListener("progress", (e) => {
+          if (e.lengthComputable) {
+            const pct = Math.round((e.loaded / e.total) * 100);
+            progressFill.style.width = `${pct}%`;
+            progressLabel.textContent = `Uploading… ${pct}%`;
+          }
+        });
+
+        xhr.addEventListener("load", () => {
+          if (xhr.status === 200) resolve(JSON.parse(xhr.responseText));
+          else reject(new Error(JSON.parse(xhr.responseText).error || "Upload failed"));
+        });
+
+        xhr.addEventListener("error", () => reject(new Error("Network error")));
+        xhr.send(fd);
+      });
+
+      progressFill.style.width = "100%";
+      progressLabel.textContent = "Done!";
+      showToast(`${pendingFiles.length} file(s) uploaded`, "success");
+      pendingFiles = [];
+      fileInput.value = "";
+      renderQueue();
+      setTimeout(() => { progressWrap.style.display = "none"; }, 1200);
+      loadFiles();
+    } catch (err) {
+      showToast(err.message, "error");
+      progressWrap.style.display = "none";
+      uploadBtn.disabled = false;
+    }
+  }
+
+  // ── File list ──────────────────────────────────────────────────────────
+  async function loadFiles() {
+    try {
+      const res = await fetch(`${API}/files`);
+      const { files } = await res.json();
+      renderFileList(files);
+    } catch {
+      fileList.innerHTML = `<div class="empty-state">Could not reach server.</div>`;
+    }
+  }
+
+  function renderFileList(files) {
+    if (!files.length) {
+      fileList.innerHTML = `<div class="empty-state">No files uploaded yet.</div>`;
+      return;
+    }
+    fileList.innerHTML = files.map(f => `
+      <div class="file-card" data-id="${f.id}">
+        <div class="file-type">${typeEmoji(f.originalName)}</div>
+        <div class="file-info">
+          <div class="file-name" title="${f.originalName}">${f.originalName}</div>
+          <div class="file-meta">${f.sizeFormatted} · ${relativeTime(f.uploadedAt)}</div>
+        </div>
+        <div class="file-actions">
+          <button class="action-btn dl" onclick="downloadFile('${f.id}', '${f.originalName}')">Download</button>
+          <button class="action-btn del" onclick="deleteFile('${f.id}')">Delete</button>
+        </div>
+      </div>
+    `).join("");
+  }
+
+  async function downloadFile(id, name) {
+    try {
+      const res = await fetch(`${API}/files/${id}/download`);
+      if (!res.ok) throw new Error("Not found");
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url; a.download = name; a.click();
+      URL.revokeObjectURL(url);
+    } catch {
+      showToast("Download failed", "error");
+    }
+  }
+
+  async function deleteFile(id) {
+    if (!confirm("Delete this file?")) return;
+    try {
+      await fetch(`${API}/files/${id}`, { method: "DELETE" });
+      showToast("File deleted", "default");
+      loadFiles();
+    } catch {
+      showToast("Delete failed", "error");
+    }
+  }
+
+  // ── Init ───────────────────────────────────────────────────────────────
+  checkServer();
+  loadFiles();
+  setInterval(checkServer, 10000);
+</script>
+</body>
+</html>
